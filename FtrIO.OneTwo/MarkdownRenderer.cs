@@ -22,7 +22,13 @@ internal static class MarkdownRenderer
                 false => "OFF",
                 null  => "MISSING"
             };
-            var source = e.Source == ToggleSource.Attribute ? "\\[Toggle\\]" : "ManualCall";
+            var source = e.Source switch
+            {
+                ToggleSource.Attribute       => "\\[Toggle\\]",
+                ToggleSource.AsyncAttribute  => "\\[ToggleAsync\\]",
+                ToggleSource.AsyncManualCall => "ManualCallAsync",
+                _                            => "ManualCall"
+            };
             sb.AppendLine($"| `{e.ToggleKey}` | `{e.MethodName}` | {source} | {state} | `{e.File}` | {e.Line} |");
         }
 

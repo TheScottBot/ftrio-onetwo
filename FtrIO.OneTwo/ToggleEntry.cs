@@ -1,6 +1,6 @@
 namespace FtrIO.OneTwo;
 
-internal enum ToggleSource { Attribute, ManualCall }
+internal enum ToggleSource { Attribute, AsyncAttribute, ManualCall, AsyncManualCall }
 
 internal record ToggleEntry(
     string ToggleKey,

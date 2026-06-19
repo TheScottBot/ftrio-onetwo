@@ -6,12 +6,27 @@ A .NET CLI tool that scans a project directory for [FtrIO](https://github.com/Th
 
 FtrIO.OneTwo walks a project's source tree, finds every toggle reference, cross-references it against `appsettings.json`, and outputs a table showing whether each toggle is **ON**, **OFF**, or **MISSING** from configuration.
 
-It detects toggles from two sources:
+It detects toggles from four patterns:
 
-| Source | Example |
+| Pattern | Use case |
 |---|---|
-| `[Toggle]` / `[ToggleAsync]` attribute on a method | `[Toggle] public void SendWelcomeEmail() { }` |
-| `ExecuteMethodIfToggleOn` / `ExecuteMethodIfToggleOnAsync` call with a literal string key | `toggle.ExecuteMethodIfToggleOn(DoThing, "NewCheckoutFlow");` |
+| `[Toggle]` | Synchronous method gated by its own name |
+| `[ToggleAsync]` | `Task`-returning method gated by its own name |
+| `ExecuteMethodIfToggleOn(action, "key")` | Manual synchronous gating with an explicit key |
+| `ExecuteMethodIfToggleOnAsync(func, "key")` | Manual async gating with an explicit key |
+
+```csharp
+// Attribute — toggle key is inferred from the method name
+[Toggle]
+public void SendWelcomeEmail() { }
+
+[ToggleAsync]
+public async Task SendNewsletterAsync() { }
+
+// Manual call — toggle key is the string literal argument
+featureToggle.ExecuteMethodIfToggleOn(ProcessOrder, "NewCheckoutFlow");
+await featureToggle.ExecuteMethodIfToggleOnAsync(SyncDataAsync, "BetaSync");
+```
 
 ## Requirements
 

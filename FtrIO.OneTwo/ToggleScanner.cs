@@ -6,14 +6,24 @@ namespace FtrIO.OneTwo;
 
 internal static class ToggleScanner
 {
-    private static readonly HashSet<string> AttributeNames = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> SyncAttributeNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        "Toggle", "ToggleAttribute", "ToggleAsync", "ToggleAsyncAttribute"
+        "Toggle", "ToggleAttribute"
     };
 
-    private static readonly HashSet<string> ManualCallNames = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> AsyncAttributeNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        "ExecuteMethodIfToggleOn", "ExecuteMethodIfToggleOnAsync"
+        "ToggleAsync", "ToggleAsyncAttribute"
+    };
+
+    private static readonly HashSet<string> AsyncManualCallNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ExecuteMethodIfToggleOnAsync"
+    };
+
+    private static readonly HashSet<string> SyncManualCallNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ExecuteMethodIfToggleOn"
     };
 
     internal static IReadOnlyList<ToggleEntry> Scan(
@@ -41,19 +51,21 @@ internal static class ToggleScanner
                     foreach (var attr in attrList.Attributes)
                     {
                         var name = attr.Name.ToString().Split('.').Last();
-                        if (!AttributeNames.Contains(name)) continue;
+                        bool isSync = SyncAttributeNames.Contains(name);
+                        bool isAsync = AsyncAttributeNames.Contains(name);
+                        if (!isSync && !isAsync) continue;
 
                         var line = tree.GetLineSpan(method.Span).StartLinePosition.Line + 1;
                         var key = method.Identifier.Text;
                         entries.Add(new ToggleEntry(
                             key, key, relPath, line,
-                            ToggleSource.Attribute,
+                            isAsync ? ToggleSource.AsyncAttribute : ToggleSource.Attribute,
                             toggleStates.TryGetValue(key, out var s) ? s : null));
                     }
                 }
             }
 
-            // ExecuteMethodIfToggleOn(..., "key") call sites
+            // ExecuteMethodIfToggleOn / ExecuteMethodIfToggleOnAsync call sites
             foreach (var invocation in root.DescendantNodes().OfType<InvocationExpressionSyntax>())
             {
                 var methodName = invocation.Expression switch
@@ -63,10 +75,12 @@ internal static class ToggleScanner
                     _ => null
                 };
 
-                if (methodName is null || !ManualCallNames.Contains(methodName)) continue;
+                if (methodName is null) continue;
+                bool isSyncCall = SyncManualCallNames.Contains(methodName);
+                bool isAsyncCall = AsyncManualCallNames.Contains(methodName);
+                if (!isSyncCall && !isAsyncCall) continue;
 
                 var args = invocation.ArgumentList.Arguments;
-                // Signature: ExecuteMethodIfToggleOn(action, key) — key is the last string literal arg
                 var keyArg = args
                     .Select(a => a.Expression)
                     .OfType<LiteralExpressionSyntax>()
@@ -78,7 +92,7 @@ internal static class ToggleScanner
                 var line = tree.GetLineSpan(invocation.Span).StartLinePosition.Line + 1;
                 entries.Add(new ToggleEntry(
                     key, methodName, relPath, line,
-                    ToggleSource.ManualCall,
+                    isAsyncCall ? ToggleSource.AsyncManualCall : ToggleSource.ManualCall,
                     toggleStates.TryGetValue(key, out var s2) ? s2 : null));
             }
         }

@@ -54,9 +54,13 @@ foreach (var e in entries)
         null  => "[yellow]MISSING[/]"
     };
 
-    var sourceLabel = e.Source == ToggleSource.Attribute
-        ? "[blue][[Toggle]][/]"
-        : "[grey]ManualCall[/]";
+    var sourceLabel = e.Source switch
+    {
+        ToggleSource.Attribute      => "[blue][[Toggle]][/]",
+        ToggleSource.AsyncAttribute => "[blue][[ToggleAsync]][/]",
+        ToggleSource.AsyncManualCall => "[grey]ManualCallAsync[/]",
+        _                           => "[grey]ManualCall[/]"
+    };
 
     table.AddRow(
         $"[bold]{Markup.Escape(e.ToggleKey)}[/]",
