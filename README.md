@@ -38,7 +38,7 @@ await featureToggle.ExecuteMethodIfToggleOnAsync(SyncDataAsync, "BetaSync");
 
 ## Requirements
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- [.NET SDK](https://dotnet.microsoft.com/download) 6, 8, or 10 (net6.0, net8.0, and net10.0 are all supported)
 
 ## Installation
 
@@ -164,8 +164,8 @@ Duplicate environment names are deduplicated — if the same name appears in bot
 Use `--env` to read a single environment. FtrIO.OneTwo applies FtrIO's overlay model: the environment-specific file's values win, and the base `appsettings.json` fills any gaps. The full path to the overlay file is shown in the table header.
 
 ```bash
-ftrio-onetwo C:\Projects\MyApp --env Staging
-ftrio-onetwo C:\Projects\MyApp --env Production
+ftrio-onetwo --source C:\Projects\MyApp --env Staging
+ftrio-onetwo --source C:\Projects\MyApp --env Production
 ```
 
 ```json
