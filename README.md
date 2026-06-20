@@ -30,6 +30,12 @@ featureToggle.ExecuteMethodIfToggleOn(ProcessOrder, "NewCheckoutFlow");
 await featureToggle.ExecuteMethodIfToggleOnAsync(SyncDataAsync, "BetaSync");
 ```
 
+## The FtrIO ecosystem
+
+- [**FtrIO**](https://github.com/TheScottBot/FtrIO) — the core library. Weaves `[Toggle]` into your IL at compile time, reads state from `appsettings.json` at runtime, and optionally syncs from remote sources via the provider pipeline.
+- **FtrIO.Toaster** — a lightweight web UI for managing toggles live. Writes values through `ToggleProviderBuffer` so changes flush to `appsettings.json` and are picked up instantly via `ReloadOnChange` — no file editing, no restart.
+- **ftrio-onetwo** — a .NET CLI audit tool. Scans your source tree for every toggle reference, cross-references against `appsettings.json`, and reports each toggle's state (`ON` / `OFF` / `20%` / `BLUE` / `MISSING`) with file and line number.
+
 ## Requirements
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
