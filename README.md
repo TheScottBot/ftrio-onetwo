@@ -1,6 +1,6 @@
 # FtrIO.OneTwo
 
-A .NET CLI tool that scans a project directory for [FtrIO](https://github.com/TheScottBot/FtrIO) feature toggle usage and reports the current state of every toggle.
+A .NET CLI tool that scans a project directory for [FtrIO](https://github.com/FtrOnOff/FtrIO) feature toggle usage and reports the current state of every toggle.
 
 Because FtrIO always resolves toggle state from `appsettings.json` at runtime, FtrIO.OneTwo gives you an instant at-a-glance view of exactly what is enabled or disabled in your codebase right now — and precisely where each toggle is used — without having to open a single source file or config manually.
 
@@ -32,9 +32,9 @@ await featureToggle.ExecuteMethodIfToggleOnAsync(SyncDataAsync, "BetaSync");
 
 ## The FtrIO ecosystem
 
-- [**FtrIO**](https://github.com/TheScottBot/FtrIO) — the core library. Weaves `[Toggle]` into your IL at compile time, reads state from `appsettings.json` at runtime, and optionally syncs from remote sources via the provider pipeline.
-- **FtrIO.Toaster** — a lightweight web UI for managing toggles live. Writes values through `ToggleProviderBuffer` so changes flush to `appsettings.json` and are picked up instantly via `ReloadOnChange` — no file editing, no restart.
-- **ftrio-onetwo** — a .NET CLI audit tool. Scans your source tree for every toggle reference, cross-references against `appsettings.json`, and reports each toggle's state (`ON` / `OFF` / `20%` / `BLUE` / `MISSING`) with file and line number.
+- [**FtrIO**](https://github.com/FtrOnOff/FtrIO) — the core library. Weaves `[Toggle]` into your IL at compile time, reads state from `appsettings.json` at runtime, and optionally syncs from remote sources via the provider pipeline.
+- [**FtrIO.Toaster**](https://github.com/FtrOnOff/FtrIO.Toaster) — a lightweight web UI for managing toggles live. Writes values through `ToggleProviderBuffer` so changes flush to `appsettings.json` and are picked up instantly via `ReloadOnChange` — no file editing, no restart.
+- [**ftrio-onetwo**](https://github.com/FtrOnOff/FtrIO.onetwo) — a .NET CLI audit tool. Scans your source tree for every toggle reference, cross-references against `appsettings.json`, and reports each toggle's state (`ON` / `OFF` / `20%` / `BLUE` / `MISSING`) with file and line number.
 
 ## Requirements
 
@@ -201,4 +201,4 @@ dotnet run -- --source <source-path> --config <config-path>
 
 ## Related
 
-- [FtrIO](https://github.com/TheScottBot/FtrIO) — the feature toggle library this tool supplements
+- [FtrIO](https://github.com/FtrOnOff/FtrIO) — the feature toggle library this tool supplements
