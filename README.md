@@ -42,11 +42,10 @@ await featureToggle.ExecuteMethodIfToggleOnAsync(SyncDataAsync, "BetaSync");
 
 ## Installation
 
-Pack and install as a global dotnet tool:
+Install as a global dotnet tool from NuGet:
 
 ```bash
-dotnet pack ./FtrIO.onetwo
-dotnet tool install -g FtrIO.onetwo --add-source ./FtrIO.onetwo/nupkg
+dotnet tool install -g FtrIO.onetwo
 ```
 
 ## Usage
