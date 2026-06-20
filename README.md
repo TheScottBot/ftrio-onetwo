@@ -6,7 +6,7 @@ Because FtrIO always resolves toggle state from `appsettings.json` at runtime, F
 
 ## What it does
 
-FtrIO.OneTwo walks a project's source tree, finds every toggle reference, cross-references it against `appsettings.json`, and outputs a table showing whether each toggle is **ON**, **OFF**, or **MISSING** from configuration.
+FtrIO.OneTwo walks a project's source tree, finds every toggle reference, cross-references it against `appsettings.json`, and outputs a table showing the current state of each toggle.
 
 It detects toggles from four patterns:
 
@@ -72,31 +72,40 @@ ftrio-onetwo
 
 ```
 Scanning C:\Projects\MyApp...
-╭──────────────────────┬──────────────────────┬────────────┬─────────┬───────────────────┬──────╮
-│ Toggle Key           │ Method               │ Source     │  State  │ File              │ Line │
-├──────────────────────┼──────────────────────┼────────────┼─────────┼───────────────────┼──────┤
-│ NewCheckoutFlow      │ NewCheckoutFlow       │ [Toggle]   │   OFF   │ Services\Order.cs │    9 │
-│ SendWelcomeEmail     │ SendWelcomeEmail      │ [Toggle]   │   ON    │ Services\Email.cs │   14 │
-│ BetaFeature          │ ExecuteMethodIfToggle │ ManualCall │ MISSING │ Controllers\Ho... │   42 │
-╰──────────────────────┴──────────────────────┴────────────┴─────────┴───────────────────┴──────╯
+╭──────────────────┬──────────────────┬────────────┬─────────┬───────────────────┬──────╮
+│ Toggle Key       │ Method           │ Source     │  State  │ File              │ Line │
+├──────────────────┼──────────────────┼────────────┼─────────┼───────────────────┼──────┤
+│ NewCheckoutFlow  │ NewCheckoutFlow  │ [Toggle]   │   20%   │ Services\Order.cs │    9 │
+│ OldCheckoutFlow  │ OldCheckoutFlow  │ [Toggle]   │   OFF   │ Services\Order.cs │   14 │
+│ PaymentV2        │ PaymentV2        │ [Toggle]   │  BLUE   │ Services\Pay.cs   │    6 │
+│ SendWelcomeEmail │ SendWelcomeEmail │ [Toggle]   │   ON    │ Services\Email.cs │   22 │
+│ UnknownFeature   │ UnknownFeature   │ ManualCall │ MISSING │ Controllers\Ho... │   42 │
+╰──────────────────┴──────────────────┴────────────┴─────────┴───────────────────┴──────╯
 
-3 toggle(s) found. 1 ON, 1 OFF, 1 MISSING from appsettings.
+5 toggle(s) found. 1 ON, 1 OFF, 1 PERCENTAGE, 1 BLUE/GREEN, 1 MISSING from appsettings.
 ```
 
-**States:**
-- `ON` — toggle key exists in `appsettings.json` and is `true`
-- `OFF` — toggle key exists in `appsettings.json` and is `false`
-- `MISSING` — toggle key is used in code but has no entry in any `appsettings*.json` file
+## States
+
+| State | Meaning |
+|---|---|
+| `ON` | Toggle is `true` or `1` in `appsettings.json` |
+| `OFF` | Toggle is `false` or `0` in `appsettings.json` |
+| `20%` | Percentage rollout — the raw value (e.g. `"20%"`) is shown directly |
+| `BLUE` / `GREEN` | Blue-green deployment slot — shown in uppercase |
+| `MISSING` | Toggle key is used in code but has no entry in any `appsettings*.json` file |
 
 ## How toggle state is resolved
 
-The tool searches for all `appsettings*.json` files under the scanned directory and reads the `Toggles` section:
+The tool searches for all `appsettings*.json` files under the scanned directory and reads the `Toggles` section. FtrIO supports boolean, percentage, and blue-green values in the same config file:
 
 ```json
 {
   "Toggles": {
     "SendWelcomeEmail": true,
-    "NewCheckoutFlow": false
+    "OldCheckoutFlow": false,
+    "NewCheckoutFlow": "20%",
+    "PaymentV2": "blue"
   }
 }
 ```

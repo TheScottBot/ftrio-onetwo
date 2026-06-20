@@ -28,7 +28,7 @@ internal static class ToggleScanner
 
     internal static IReadOnlyList<ToggleEntry> Scan(
         string projectRoot,
-        Dictionary<string, bool> toggleStates)
+        Dictionary<string, string> toggleStates)
     {
         var entries = new List<ToggleEntry>();
 

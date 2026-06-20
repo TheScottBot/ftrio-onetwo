@@ -8,5 +8,5 @@ internal record ToggleEntry(
     string File,
     int Line,
     ToggleSource Source,
-    bool? State   // null = key not found in appsettings
+    string? State   // null = key not found in appsettings; otherwise the raw config value
 );

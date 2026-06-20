@@ -16,12 +16,7 @@ internal static class MarkdownRenderer
 
         foreach (var e in entries)
         {
-            var state = e.State switch
-            {
-                true  => "ON",
-                false => "OFF",
-                null  => "MISSING"
-            };
+            var state = FormatState(e.State);
             var source = e.Source switch
             {
                 ToggleSource.Attribute       => "\\[Toggle\\]",
@@ -34,4 +29,15 @@ internal static class MarkdownRenderer
 
         return sb.ToString();
     }
+
+    private static string FormatState(string? state) => state switch
+    {
+        null                                                                          => "MISSING",
+        _ when state.Equals("true", StringComparison.OrdinalIgnoreCase) || state == "1"  => "ON",
+        _ when state.Equals("false", StringComparison.OrdinalIgnoreCase) || state == "0" => "OFF",
+        _ when state.EndsWith('%')                                                    => state,
+        _ when state.Equals("blue", StringComparison.OrdinalIgnoreCase) ||
+               state.Equals("green", StringComparison.OrdinalIgnoreCase)              => state.ToUpperInvariant(),
+        _                                                                              => state
+    };
 }

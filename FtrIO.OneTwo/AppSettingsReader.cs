@@ -5,9 +5,9 @@ namespace FtrIO.OneTwo;
 
 internal static class AppSettingsReader
 {
-    internal static Dictionary<string, bool> ReadToggles(string projectRoot)
+    internal static Dictionary<string, string> ReadToggles(string projectRoot)
     {
-        var results = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        var results = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var file in Directory.EnumerateFiles(projectRoot, "appsettings*.json", SearchOption.AllDirectories))
         {
@@ -20,8 +20,10 @@ internal static class AppSettingsReader
 
                 foreach (var (key, value) in toggles)
                 {
-                    if (value is JsonValue jv && jv.TryGetValue<bool>(out var b))
-                        results.TryAdd(key, b);
+                    if (value is null) continue;
+                    var raw = value.GetValue<object>().ToString();
+                    if (raw is not null)
+                        results.TryAdd(key, raw);
                 }
             }
             catch (JsonException) { }

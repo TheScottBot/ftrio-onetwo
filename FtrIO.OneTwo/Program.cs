@@ -47,12 +47,7 @@ var table = new Table()
 
 foreach (var e in entries)
 {
-    var stateMarkup = e.State switch
-    {
-        true  => "[green]ON[/]",
-        false => "[red]OFF[/]",
-        null  => "[yellow]MISSING[/]"
-    };
+    var stateMarkup = FormatState(e.State);
 
     var sourceLabel = e.Source switch
     {
@@ -74,8 +69,10 @@ foreach (var e in entries)
 AnsiConsole.Write(table);
 AnsiConsole.MarkupLine(
     $"\n[grey]{entries.Count} toggle(s) found. " +
-    $"{entries.Count(x => x.State == true)} ON, " +
-    $"{entries.Count(x => x.State == false)} OFF, " +
+    $"{entries.Count(x => IsOn(x.State))} ON, " +
+    $"{entries.Count(x => IsOff(x.State))} OFF, " +
+    $"{entries.Count(x => IsPercentage(x.State))} PERCENTAGE, " +
+    $"{entries.Count(x => IsBlueGreen(x.State))} BLUE/GREEN, " +
     $"{entries.Count(x => x.State == null)} MISSING from appsettings.[/]");
 
 if (markdownPath is not null)
@@ -86,3 +83,26 @@ if (markdownPath is not null)
 }
 
 return 0;
+
+static bool IsOn(string? state) =>
+    state is not null && (state.Equals("true", StringComparison.OrdinalIgnoreCase) || state == "1");
+
+static bool IsOff(string? state) =>
+    state is not null && (state.Equals("false", StringComparison.OrdinalIgnoreCase) || state == "0");
+
+static bool IsPercentage(string? state) =>
+    state is not null && state.EndsWith('%');
+
+static bool IsBlueGreen(string? state) =>
+    state is not null && (state.Equals("blue", StringComparison.OrdinalIgnoreCase) ||
+                          state.Equals("green", StringComparison.OrdinalIgnoreCase));
+
+static string FormatState(string? state) => state switch
+{
+    null                       => "[yellow]MISSING[/]",
+    _ when IsOn(state)         => "[green]ON[/]",
+    _ when IsOff(state)        => "[red]OFF[/]",
+    _ when IsPercentage(state) => $"[cyan]{Markup.Escape(state)}[/]",
+    _ when IsBlueGreen(state)  => $"[blue]{Markup.Escape(state.ToUpperInvariant())}[/]",
+    _                          => $"[grey]{Markup.Escape(state)}[/]"
+};
