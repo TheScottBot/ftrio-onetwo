@@ -1,4 +1,4 @@
-# FtrIO.onetwo
+![FtrIO.onetwo](onetwo.png)
 
 A .NET CLI tool that scans a project directory for [FtrIO](https://github.com/FtrOnOff/FtrIO) feature toggle usage and reports the current state of every toggle.
 
