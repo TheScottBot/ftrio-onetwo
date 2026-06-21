@@ -45,7 +45,7 @@ internal static class ImportCommand
         if (source is null)
         {
             AnsiConsole.MarkupLine("[red]Error:[/] --source is required for import command.");
-            AnsiConsole.MarkupLine("  Valid sources: launchdarkly, flagsmith, flagd, env, http");
+            AnsiConsole.MarkupLine("  Valid sources: launchdarkly, flagsmith, unleash, flagd, env, http, microsoft.featuremanagement");
             return 1;
         }
 
@@ -229,11 +229,12 @@ internal static class ImportCommand
         {
             "launchdarkly"               => CreateLaunchDarkly(apiKey, project, env),
             "flagsmith"                  => CreateFlagsmith(apiKey, env),
+            "unleash"                    => CreateUnleash(apiKey, url),
             "flagd"                      => CreateFlagd(file),
             "env"                        => new EnvSource(prefix ?? string.Empty),
             "http"                       => CreateHttp(url),
             "microsoft.featuremanagement"=> CreateMicrosoftFeatureManagement(file, config),
-            _ => throw new InvalidOperationException($"Unknown source '{source}'. Valid: launchdarkly, flagsmith, flagd, env, http, microsoft.featuremanagement")
+            _ => throw new InvalidOperationException($"Unknown source '{source}'. Valid: launchdarkly, flagsmith, unleash, flagd, env, http, microsoft.featuremanagement")
         };
     }
 
@@ -269,6 +270,15 @@ internal static class ImportCommand
         if (string.IsNullOrWhiteSpace(url))
             throw new InvalidOperationException("--url is required for http source.");
         return new HttpSource(url);
+    }
+
+    private static IFlagSource CreateUnleash(string? apiKey, string? url)
+    {
+        if (string.IsNullOrWhiteSpace(apiKey))
+            throw new InvalidOperationException("--api-key is required for unleash source.");
+        if (string.IsNullOrWhiteSpace(url))
+            throw new InvalidOperationException("--url is required for unleash source (your Unleash server base URL, e.g. https://unleash.example.com).");
+        return new UnleashSource(apiKey, url);
     }
 
     private static IFlagSource CreateMicrosoftFeatureManagement(string? file, string? config)

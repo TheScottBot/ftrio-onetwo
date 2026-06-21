@@ -29,9 +29,9 @@ That's it. FtrIO.onetwo scans every `.cs` file in the directory, finds every `[T
 
 ---
 
-## Coming from LaunchDarkly, Flagsmith, or Microsoft.FeatureManagement?
+## Coming from LaunchDarkly, Flagsmith, Unleash, or Microsoft.FeatureManagement?
 
-> **⚠️ Experimental** — `migrate` and `import` are available now but have not been tested against live LaunchDarkly, Flagsmith, or Microsoft.FeatureManagement accounts. If you try this path we'd love to hear how it goes — please [open an issue](https://github.com/FtrOnOff/FtrIO.onetwo/issues) with your findings.
+> **⚠️ Experimental** — `migrate` and `import` are available now but have not been tested against live LaunchDarkly, Flagsmith, Unleash, or Microsoft.FeatureManagement accounts. If you try this path we'd love to hear how it goes — please [open an issue](https://github.com/FtrOnOff/FtrIO.onetwo/issues) with your findings.
 
 FtrIO.onetwo makes onboarding from another provider a two-step process.
 
@@ -48,6 +48,11 @@ ftrio.onetwo migrate --from launchdarkly \
 # From Flagsmith
 ftrio.onetwo migrate --from flagsmith \
   --api-key env-xxx \
+  --source C:\Projects\MyApp --markdown plan.md
+
+# From Unleash — self-hosted, needs base URL
+ftrio.onetwo migrate --from unleash \
+  --api-key my-admin-token --url https://unleash.example.com \
   --source C:\Projects\MyApp --markdown plan.md
 
 # From Microsoft.FeatureManagement — no API key needed, reads local config
@@ -75,6 +80,10 @@ client.StringVariation("flag-key", user, "default")
 // Flagsmith
 flagsmithClient.HasFeatureFlagAsync("flag-key")
 
+// Unleash
+unleashClient.IsEnabled("flag-key")
+unleashClient.GetVariant("flag-key")   // detected as cannot migrate (multivariate)
+
 // Microsoft.FeatureManagement
 [FeatureGate("flag-key")]
 featureManager.IsEnabled("flag-key")
@@ -94,6 +103,11 @@ ftrio.onetwo import --source launchdarkly \
 # From Flagsmith
 ftrio.onetwo import --source flagsmith \
   --api-key env-xxx \
+  --config C:\Projects\MyApp\appsettings.json
+
+# From Unleash — self-hosted, needs base URL
+ftrio.onetwo import --source unleash \
+  --api-key my-admin-token --url https://unleash.example.com \
   --config C:\Projects\MyApp\appsettings.json
 
 # From Microsoft.FeatureManagement — reads FeatureManagement section, writes to Toggles
@@ -277,12 +291,12 @@ Both `--source` and `--config` can be passed as positional arguments.
 
 | Argument | Description |
 |---|---|
-| `--source` | Source type: `launchdarkly`, `flagsmith`, `microsoft.featuremanagement`, `flagd`, `env`, `http` |
-| `--api-key` | Auth key for LaunchDarkly or Flagsmith |
+| `--source` | Source type: `launchdarkly`, `flagsmith`, `unleash`, `microsoft.featuremanagement`, `flagd`, `env`, `http` |
+| `--api-key` | Auth key for LaunchDarkly, Flagsmith, or Unleash |
 | `--project` | LaunchDarkly project key |
 | `--env` | Environment name |
 | `--file` | Local file for `flagd` or `microsoft.featuremanagement` source |
-| `--url` | Endpoint URL for `http` source |
+| `--url` | Base URL for `unleash` source, or endpoint URL for `http` source |
 | `--prefix` | Prefix to strip for `env` source (e.g. `FEATURE_`) |
 | `--config` | Path to `appsettings.json` to write. Defaults to `appsettings.json` in current directory. |
 | `--dry-run` | Print what would change without writing |
@@ -300,11 +314,12 @@ Both `--source` and `--config` can be passed as positional arguments.
 
 | Argument | Description |
 |---|---|
-| `--from` | SDK to scan for: `launchdarkly`, `flagsmith`, `microsoft.featuremanagement` |
+| `--from` | SDK to scan for: `launchdarkly`, `flagsmith`, `unleash`, `microsoft.featuremanagement` |
 | `--source` | Directory to scan for `.cs` files |
 | `--api-key` | Optional — fetches live flag state. Not needed for `microsoft.featuremanagement`. |
 | `--project` | LaunchDarkly project key |
 | `--env` | Environment name |
+| `--url` | Unleash server base URL (e.g. `https://unleash.example.com`) |
 | `--config` | Config file for `microsoft.featuremanagement` flag values |
 | `--exclude` | Comma-separated flag keys to exclude |
 | `--markdown` | Write the full report to a markdown file |

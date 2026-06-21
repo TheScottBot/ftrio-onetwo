@@ -13,6 +13,7 @@ internal static class MigrateCommand
         string? apiKey = null;
         string? project = null;
         string? env = null;
+        string? url = null;
         string? config = null;
         string? markdownPath = null;
         string? exclude = null;
@@ -27,6 +28,7 @@ internal static class MigrateCommand
                 case "--api-key" when i + 1 < args.Length:    apiKey = args[++i]; break;
                 case "--project" when i + 1 < args.Length:    project = args[++i]; break;
                 case "--env" when i + 1 < args.Length:        env = args[++i]; break;
+                case "--url" when i + 1 < args.Length:        url = args[++i]; break;
                 case "--config" when i + 1 < args.Length:     config = args[++i]; break;
                 case "--markdown" when i + 1 < args.Length:   markdownPath = args[++i]; break;
                 case "--exclude" when i + 1 < args.Length:    exclude = args[++i]; break;
@@ -37,7 +39,7 @@ internal static class MigrateCommand
         if (from is null)
         {
             AnsiConsole.MarkupLine("[red]Error:[/] --from is required for migrate command.");
-            AnsiConsole.MarkupLine("  Valid values: launchdarkly, flagsmith, microsoft.featuremanagement");
+            AnsiConsole.MarkupLine("  Valid values: launchdarkly, flagsmith, unleash, microsoft.featuremanagement");
             return 1;
         }
 
@@ -58,9 +60,10 @@ internal static class MigrateCommand
         AnsiConsole.MarkupLine($"[grey]Scanning[/] [yellow]{Markup.Escape(source)}[/] [grey]for {Markup.Escape(from)} SDK patterns...[/]");
         var codeEntries = SdkScanner.Scan(source);
 
-        // Fetch flags — from API (LD/Flagsmith) or local config (Microsoft.FeatureManagement)
+        // Fetch flags — from API (LD/Flagsmith/Unleash) or local config (Microsoft.FeatureManagement)
         Dictionary<string, ApiFlagInfo>? apiFlagsByKey = null;
         bool isMsft = from.Equals("microsoft.featuremanagement", StringComparison.OrdinalIgnoreCase);
+        bool isUnleash = from.Equals("unleash", StringComparison.OrdinalIgnoreCase);
 
         if (isMsft)
         {
@@ -81,7 +84,7 @@ internal static class MigrateCommand
         {
             try
             {
-                apiFlagsByKey = FetchApiFlags(from, apiKey, project, env);
+                apiFlagsByKey = FetchApiFlags(from, apiKey, project, env, url);
             }
             catch (Exception ex)
             {
@@ -151,6 +154,7 @@ internal static class MigrateCommand
     private static void PrintActionBlocks(IReadOnlyList<MigrationEntry> entries, string from)
     {
         bool isMsft = from.Equals("microsoft.featuremanagement", StringComparison.OrdinalIgnoreCase);
+        bool isUnleashPrint = from.Equals("unleash", StringComparison.OrdinalIgnoreCase);
         var ready = entries.Where(e => e.Status == MigrationStatus.ReadyToMigrate).ToList();
         var needsReview = entries.Where(e => e.Status == MigrationStatus.NeedsReview).ToList();
         var cannotMigrate = entries.Where(e => e.Status == MigrationStatus.CannotMigrate).ToList();
@@ -170,6 +174,11 @@ internal static class MigrateCommand
                 else if (isMsft)
                 {
                     AnsiConsole.MarkupLine($"   Replace: [grey]await _featureManager.{Markup.Escape(e.SdkMethod)}(\"{Markup.Escape(e.FlagKey)}\")[/]");
+                    AnsiConsole.MarkupLine($"   With:    [grey]Extract the toggled block into a method named {Markup.Escape(e.NormalisedKey)}(), decorate with [[Toggle]][/]");
+                }
+                else if (isUnleashPrint)
+                {
+                    AnsiConsole.MarkupLine($"   Replace: [grey]if (_unleashClient.IsEnabled(\"{Markup.Escape(e.FlagKey)}\")) {{ ... }}[/]");
                     AnsiConsole.MarkupLine($"   With:    [grey]Extract the toggled block into a method named {Markup.Escape(e.NormalisedKey)}(), decorate with [[Toggle]][/]");
                 }
                 else
@@ -256,6 +265,7 @@ internal static class MigrateCommand
             if (status == MigrationStatus.ReadyToMigrate)
             {
                 bool isMsftMd = from.Equals("microsoft.featuremanagement", StringComparison.OrdinalIgnoreCase);
+                bool isUnleashMd = from.Equals("unleash", StringComparison.OrdinalIgnoreCase);
                 foreach (var e in group)
                 {
                     sb.AppendLine($"### ✅ {e.NormalisedKey}");
@@ -269,6 +279,11 @@ internal static class MigrateCommand
                     else if (isMsftMd)
                     {
                         sb.AppendLine($"Replace: `await _featureManager.{e.SdkMethod}(\"{e.FlagKey}\")`  ");
+                        sb.AppendLine($"With: Extract the toggled block into a method named `{e.NormalisedKey}()`, decorate with `[Toggle]`  ");
+                    }
+                    else if (isUnleashMd)
+                    {
+                        sb.AppendLine($"Replace: `if (_unleashClient.IsEnabled(\"{e.FlagKey}\")) {{ ... }}`  ");
                         sb.AppendLine($"With: Extract the toggled block into a method named `{e.NormalisedKey}()`, decorate with `[Toggle]`  ");
                     }
                     else
@@ -317,14 +332,58 @@ internal static class MigrateCommand
     }
 
     private static Dictionary<string, ApiFlagInfo> FetchApiFlags(
-        string from, string apiKey, string? project, string? env)
+        string from, string apiKey, string? project, string? env, string? url)
     {
         return from.ToLowerInvariant() switch
         {
             "launchdarkly" => FetchLaunchDarklyFlags(apiKey, project, env),
             "flagsmith"    => FetchFlagsmithFlags(apiKey, env),
+            "unleash"      => FetchUnleashFlags(apiKey, url),
             _ => throw new InvalidOperationException($"Unsupported --from value: {from}")
         };
+    }
+
+    private static Dictionary<string, ApiFlagInfo> FetchUnleashFlags(string apiKey, string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            throw new InvalidOperationException("--url is required for unleash (your Unleash server base URL).");
+
+        using var client = new System.Net.Http.HttpClient();
+        client.DefaultRequestHeaders.Add("Authorization", apiKey);
+
+        var response = client.GetAsync($"{url.TrimEnd('/')}/api/admin/features").GetAwaiter().GetResult();
+
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException($"Unleash API returned {(int)response.StatusCode}");
+
+        var body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+        var doc = JsonNode.Parse(body);
+        var features = doc?["features"]?.AsArray();
+
+        var result = new Dictionary<string, ApiFlagInfo>(StringComparer.OrdinalIgnoreCase);
+        if (features is null) return result;
+
+        foreach (var feature in features)
+        {
+            if (feature is null) continue;
+            var name = feature["name"]?.GetValue<string>() ?? string.Empty;
+            var enabled = feature["enabled"]?.GetValue<bool>() ?? false;
+            var variants = feature["variants"]?.AsArray();
+            var strategies = feature["strategies"]?.AsArray();
+
+            // Reuse UnleashSource mapping logic to get value and status
+            var normKey = KeyNormaliser.ToPascalCase(name);
+            var mapped = UnleashSource.MapFeature(name, normKey, enabled, strategies, variants);
+
+            // Variant flags → CannotMigrate (use "json" kind as sentinel)
+            bool hasVariants = variants is not null && variants.Count > 0;
+            string kind = hasVariants ? "json" : "boolean";
+            bool hasTargeting = mapped.Status == FlagStatus.Approximated && !hasVariants;
+
+            result[name] = new ApiFlagInfo(kind, hasTargeting, mapped.Value);
+        }
+
+        return result;
     }
 
     private static Dictionary<string, ApiFlagInfo> FetchMicrosoftFeatureManagementFlags(string configFile)

@@ -22,6 +22,11 @@ internal static class SdkScanner
         "IsEnabled", "IsEnabledAsync"
     };
 
+    private static readonly HashSet<string> UnleashMethods = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "GetVariant"
+    };
+
     private const string FeatureGateAttribute = "FeatureGate";
 
     internal record SdkCallEntry(string FlagKey, string SdkMethod, string File, int Line);
@@ -88,7 +93,8 @@ internal static class SdkScanner
             bool isLd = LdMethods.Contains(methodName);
             bool isFlagsmith = FlagsmithMethods.Contains(methodName);
             bool isMsft = MsftMethods.Contains(methodName);
-            if (!isLd && !isFlagsmith && !isMsft) continue;
+            bool isUnleash = UnleashMethods.Contains(methodName);
+            if (!isLd && !isFlagsmith && !isMsft && !isUnleash) continue;
 
             var args = invocation.ArgumentList.Arguments;
             var keyArg = args
