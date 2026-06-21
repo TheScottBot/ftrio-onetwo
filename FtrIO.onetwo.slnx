@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="FtrIO.OneTwo.Tests/FtrIO.OneTwo.Tests.csproj" />
+  <Project Path="FtrIO.OneTwo/FtrIO.OneTwo.csproj" />
+</Solution>

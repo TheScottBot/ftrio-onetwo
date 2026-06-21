@@ -1,4 +1,6 @@
 using FtrIO.OneTwo;
+using FtrIO.OneTwo.ExportManifest;
+using FtrIO.OneTwo.ReleaseCheck;
 using Spectre.Console;
 
 // Subcommand routing
