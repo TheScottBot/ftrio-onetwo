@@ -34,7 +34,7 @@ await featureToggle.ExecuteMethodIfToggleOnAsync(SyncDataAsync, "BetaSync");
 
 - [**FtrIO**](https://github.com/FtrOnOff/FtrIO) — the core library. Weaves `[Toggle]` into your IL at compile time, reads state from `appsettings.json` at runtime, and optionally syncs from remote sources via the provider pipeline.
 - [**FtrIO.Toaster**](https://github.com/FtrOnOff/FtrIO.Toaster) — a lightweight web UI for managing toggles live. Writes values through `ToggleProviderBuffer` so changes flush to `appsettings.json` and are picked up instantly via `ReloadOnChange` — no file editing, no restart.
-- [**FtrIO.onetwo**](https://github.com/FtrOnOff/FtrIO.onetwo) — a .NET CLI audit tool. Scans your source tree for every toggle reference, cross-references against `appsettings.json`, and reports each toggle's state (`ON` / `OFF` / `20%` / `BLUE` / `MISSING`) with file and line number.
+- [**FtrIO.onetwo**](https://github.com/FtrOnOff/FtrIO.onetwo) — a .NET CLI audit tool. Scans your source tree for every toggle reference, cross-references against `appsettings.json`, and reports each toggle's state (`ON` / `OFF` / `AB-TEST` / `TARGETED` / `RULE-BASED` / `MISSING`) with file and line number.
 
 ## Requirements
 
@@ -142,13 +142,48 @@ Scanning C:\Projects\MyApp...
 
 ## States
 
-| State | Meaning |
-|---|---|
-| `ON` | Toggle is `true` or `1` in `appsettings.json` |
-| `OFF` | Toggle is `false` or `0` in `appsettings.json` |
-| `20%` | Percentage rollout — the raw value (e.g. `"20%"`) is shown directly |
-| `BLUE` / `GREEN` | Blue-green deployment slot — shown in uppercase |
-| `MISSING` | Toggle key is used in code but has no entry in any `appsettings*.json` file |
+| State | Meaning | Resolvable at audit time? |
+|---|---|---|
+| `ON` | `true` or `1` in `appsettings.json` | ✅ yes |
+| `OFF` | `false` or `0` in `appsettings.json` | ✅ yes |
+| `ON (BLUE)` / `OFF (BLUE)` | Blue-green slot resolved via `FtrIO:BlueGreen:CurrentSlot` in config | ✅ yes |
+| `BLUE` / `GREEN` | Blue-green slot — `CurrentSlot` absent, shown raw | ⚠️ needs config |
+| `50%` | Plain percentage rollout | ⚠️ partial |
+| `AB-TEST(50%)` | A/B experiment rollout (`ab:50`) — user bucket not resolvable at audit time | ❌ runtime |
+| `AB-TEST(50% salt=round2)` | A/B experiment with an explicit salt for independent bucketing (`ab:50:round2`) | ❌ runtime |
+| `TARGETED(alice,bob)` | Per-user targeting (`users:alice,bob`) — not resolvable without a user context | ❌ runtime |
+| `RULE-BASED(plan equals premium)` | Attribute rule (`attribute:plan equals premium`) — not resolvable without request context | ❌ runtime |
+| `MISSING` | Toggle key is used in code but has no entry in any `appsettings*.json` file | ✅ yes |
+
+`AB-TEST`, `TARGETED`, and `RULE-BASED` all mean the config value is present and valid — the toggle is not missing. Whether it fires depends on runtime context that the audit tool cannot see statically.
+
+### Blue-green resolution
+
+When `FtrIO:BlueGreen:CurrentSlot` is present in `appsettings.json`, blue-green toggles resolve to `ON` or `OFF` automatically. The active slot is shown in the table header:
+
+```
+── Staging  appsettings.Staging.json  (current slot: blue)
+```
+
+If `CurrentSlot` is absent, the raw slot name (`BLUE` / `GREEN`) is shown unchanged.
+
+### Per-user overrides
+
+FtrIO v1.1.2 supports a `TogglesOverrides` section that pins toggle state for specific users unconditionally:
+
+```json
+"TogglesOverrides": {
+  "NewDashboard": { "alice": false, "bob": true }
+}
+```
+
+By default, onetwo notes which toggles have overrides at the bottom of each table:
+
+```
+⚡ TogglesOverrides present for: NewDashboard. Use --show-overrides to display per-user values.
+```
+
+Pass `--show-overrides` to add an Overrides column to the table showing the exact per-user values.
 
 ## Multi-environment support
 
